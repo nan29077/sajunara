@@ -1,39 +1,19 @@
 "use client";
 
-import Link from "next/link";
-import { FOOTER_DEFAULTS, type FooterSettings } from "@/lib/settings";
+import type { FooterSettings } from "@/lib/settings";
 
-// 전자상거래법(소비자보호법)상 서비스 초기 화면(로그인/회원가입 등 (public) 레이아웃 밖 화면)
-// 하단에 노출해야 하는 사업자 정보 푸터.
-// 상호·대표·사업자등록번호·통신판매업 신고번호·전화·이메일·주소 + 이용약관/개인정보처리방침.
-export default function BusinessInfoFooter({ settings }: { settings?: FooterSettings }) {
-  const f = settings ?? FOOTER_DEFAULTS;
+// 로그인/회원가입 등 초기 화면 하단 사업자 정보 푸터.
+// 사주나라 사업자 정보만 노출하고 그 외 내용은 넣지 않는다.
+export default function BusinessInfoFooter(_props: { settings?: FooterSettings }) {
   return (
-    <footer className="w-full max-w-md mx-auto mt-8 pt-5 border-t border-gray-200 text-[10px] leading-relaxed text-gray-400">
+    <footer className="w-full max-w-md mx-auto mt-8 pt-5 border-t border-gray-200 text-[11px] leading-relaxed text-gray-400">
       <div className="space-y-1">
-        <p>
-          <span className="text-gray-500">상호</span> {f.companyName}
-          <span className="mx-1.5 text-gray-300">|</span>
-          <span className="text-gray-500">대표</span> {f.ceoName}
-        </p>
-        <p>
-          <span className="text-gray-500">사업자등록번호</span> {f.bizNum}
-          <span className="mx-1.5 text-gray-300">|</span>
-          <span className="text-gray-500">통신판매업 신고번호</span> {f.mailOrderNum}
-        </p>
-        <p>
-          <span className="text-gray-500">전화</span> {f.phone}
-          <span className="mx-1.5 text-gray-300">|</span>
-          <span className="text-gray-500">이메일</span> support@sajunara.co.kr
-        </p>
-        <p>
-          <span className="text-gray-500">주소</span> {f.address}
-        </p>
-        <div className="flex gap-3 pt-1.5">
-          <Link href="/support/terms" className="hover:text-gray-600">이용약관</Link>
-          <Link href="/support/privacy" className="hover:text-gray-600">개인정보처리방침</Link>
-        </div>
-        <p className="pt-1">&copy; {f.copyright}</p>
+        <p className="text-xs font-bold text-gray-600 mb-1.5">&lt;사주나라&gt;</p>
+        <p><span className="text-gray-500">법인명</span> : 주식회사 윈스투핀</p>
+        <p><span className="text-gray-500">사업자등록</span> : 219-81-34189</p>
+        <p><span className="text-gray-500">대표자</span> : 박찬엽</p>
+        <p><span className="text-gray-500">메일</span> : hibvo119@naver.com</p>
+        <p><span className="text-gray-500">고객센터</span> : 070-8080-4536</p>
       </div>
     </footer>
   );
