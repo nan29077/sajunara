@@ -5,6 +5,17 @@ import { ChevronLeft, ChevronRight, Clock, User, Calendar, CheckCircle } from "l
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
+interface ConsultVariant {
+  id: string;
+  name: string; // "영상 상담/1시간" 형태 (방식/시간)
+  price: number;
+}
+
+interface OptionGroup {
+  groupName: string;
+  options: string[];
+}
+
 interface Product {
   id: string;
   name: string;
@@ -16,6 +27,19 @@ interface Product {
   thumbnail: string | null;
   description: string | null;
   sellerPrice: number | null;
+  // 방식×시간 조합 옵션 (없으면 기존 단일가 흐름)
+  optionGroups?: OptionGroup[] | null;
+  variants?: ConsultVariant[];
+}
+
+const METHOD_GROUP = "상담 방식";
+const TIME_GROUP = "상담 시간";
+
+// 조합명 "영상 상담/1시간" → ["영상 상담", "1시간"]
+function splitCombo(name: string): [string, string] {
+  const idx = name.indexOf("/");
+  if (idx < 0) return ["", name];
+  return [name.slice(0, idx), name.slice(idx + 1)];
 }
 
 interface Seller {
@@ -29,7 +53,7 @@ interface Seller {
   consultantAvatar: string | null;
 }
 
-type Step = "product" | "date" | "time" | "info" | "confirm" | "pay" | "done";
+type Step = "product" | "option" | "date" | "time" | "info" | "confirm" | "pay" | "done";
 
 interface PayProvider {
   key: string;
@@ -56,6 +80,10 @@ export default function BookingFlow({
 }) {
   const [step, setStep] = useState<Step>("product");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  // 방식×시간 조합 선택
+  const [selMethod, setSelMethod] = useState<string | null>(null);
+  const [selTime, setSelTime] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ConsultVariant | null>(null);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -112,10 +140,57 @@ export default function BookingFlow({
     setStep("time");
   };
 
+  // 상품에 방식×시간 조합 옵션이 있는지
+  const productHasOptions = (p: Product) => (p.variants?.length ?? 0) > 0;
+
   const handleProductSelect = (p: Product) => {
     setSelectedProduct(p);
+    setSelMethod(null);
+    setSelTime(null);
+    setSelectedVariant(null);
+    if (productHasOptions(p)) {
+      // 방식 → 시간 선택 단계로
+      setStep("option");
+    } else {
+      // 기존 단일가 흐름 (옵션 없는 상품 / 드리프트 환경)
+      loadMonthSlots(currentYear, currentMonth);
+      setStep("date");
+    }
+  };
+
+  // 방식 선택 → 시간·조합 초기화
+  const handleSelectMethod = (m: string) => {
+    setSelMethod(m);
+    setSelTime(null);
+    setSelectedVariant(null);
+  };
+
+  // 시간 선택 → 조합(variant) 확정
+  const handleSelectTime = (t: string) => {
+    setSelTime(t);
+    const list = selectedProduct?.variants ?? [];
+    const combo = selMethod ? `${selMethod}/${t}` : t;
+    const v = list.find((x) => x.name === combo) ?? list.find((x) => x.name === t) ?? null;
+    setSelectedVariant(v);
+  };
+
+  // 조합 선택 완료 → 날짜 단계로
+  const handleOptionNext = () => {
+    if (!selectedVariant) return;
     loadMonthSlots(currentYear, currentMonth);
     setStep("date");
+  };
+
+  // 현재 결제 대상 금액 (조합 선택 시 그 가격, 아니면 판매가/기본가)
+  const priceFor = (p: Product) =>
+    selectedVariant ? selectedVariant.price : p.sellerPrice ?? p.basePrice;
+
+  // 상품 카드에 표시할 최저가 (조합 있으면 조합 최저가)
+  const startingPrice = (p: Product) => {
+    if (p.variants && p.variants.length > 0) {
+      return Math.min(...p.variants.map((v) => v.price));
+    }
+    return p.sellerPrice ?? p.basePrice;
   };
 
   // 라이브 등에서 특정 상품으로 진입 시 자동 선택 (최초 1회)
@@ -153,6 +228,7 @@ export default function BookingFlow({
       body: JSON.stringify({
         sellerId: seller.id,
         productId: selectedProduct.id,
+        variantId: selectedVariant?.id ?? null,
         timeSlotId: selectedSlot.id,
         reservationDate: selectedDate,
         reservationTime: selectedSlot.startTime,
@@ -299,7 +375,8 @@ export default function BookingFlow({
         {step !== "product" && (
           <button
             onClick={() => {
-              if (step === "date") setStep("product");
+              if (step === "option") setStep("product");
+              else if (step === "date") setStep(selectedProduct && productHasOptions(selectedProduct) ? "option" : "product");
               else if (step === "time") setStep("date");
               else if (step === "info") setStep("time");
               else if (step === "confirm") setStep("info");
@@ -313,6 +390,7 @@ export default function BookingFlow({
           <h1 className="text-base font-bold text-gray-900">{seller.shopName}</h1>
           <p className="text-xs text-gray-400">
             {step === "product" && "상담 상품 선택"}
+            {step === "option" && "상담 방식 · 시간 선택"}
             {step === "date" && "날짜 선택"}
             {step === "time" && "시간 선택"}
             {step === "info" && "신청자 정보"}
@@ -358,7 +436,8 @@ export default function BookingFlow({
                         <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
                       )}
                       <p className="text-sm font-bold text-gray-900 mt-1.5">
-                        {formatPrice(p.sellerPrice ?? p.basePrice)}
+                        {formatPrice(startingPrice(p))}
+                        {productHasOptions(p) && <span className="text-xs font-normal text-gray-400"> 부터</span>}
                       </p>
                     </div>
                     <ChevronRight size={18} className="text-gray-300 flex-shrink-0 mt-1" />
@@ -368,6 +447,103 @@ export default function BookingFlow({
             )}
           </div>
         )}
+
+        {/* Step 1.5: 상담 방식 · 시간 선택 */}
+        {step === "option" && selectedProduct && (() => {
+          const variants = selectedProduct.variants ?? [];
+          const methodGroup = selectedProduct.optionGroups?.find((g) => g.groupName === METHOD_GROUP);
+          const timeGroup = selectedProduct.optionGroups?.find((g) => g.groupName === TIME_GROUP);
+          // 방식 목록: optionGroups 우선, 없으면 조합명에서 추출
+          const methods = methodGroup?.options?.length
+            ? methodGroup.options
+            : Array.from(new Set(variants.map((v) => splitCombo(v.name)[0]).filter(Boolean)));
+          const hasMethodDim = methods.length > 0;
+          // 선택된 방식에서 가능한 시간 목록
+          const timesForMethod = (m: string | null) => {
+            const avail = variants
+              .filter((v) => (hasMethodDim ? splitCombo(v.name)[0] === m : true))
+              .map((v) => (hasMethodDim ? splitCombo(v.name)[1] : v.name));
+            const uniq = Array.from(new Set(avail));
+            // optionGroups 순서를 존중하되 실제 존재하는 시간만
+            return timeGroup?.options?.length
+              ? timeGroup.options.filter((t) => uniq.includes(t))
+              : uniq;
+          };
+          const times = timesForMethod(hasMethodDim ? selMethod : "");
+          const pill = (active: boolean) =>
+            `px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+              active
+                ? "bg-indigo-600 border-indigo-600 text-white"
+                : "border-gray-200 text-gray-700 hover:border-indigo-400"
+            }`;
+          return (
+            <div className="space-y-6">
+              {hasMethodDim && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-2">상담 방식</p>
+                  <div className="flex flex-wrap gap-2">
+                    {methods.map((m) => (
+                      <button key={m} type="button" onClick={() => handleSelectMethod(m)} className={pill(selMethod === m)}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!hasMethodDim || selMethod) && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-2">상담 시간</p>
+                  {times.length === 0 ? (
+                    <p className="text-sm text-gray-400">선택 가능한 시간이 없습니다.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {times.map((t) => {
+                        const combo = hasMethodDim ? `${selMethod}/${t}` : t;
+                        const v = variants.find((x) => x.name === combo) ?? variants.find((x) => x.name === t);
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => handleSelectTime(t)}
+                            className={`${pill(selTime === t)} flex flex-col items-center`}
+                          >
+                            <span>{t}</span>
+                            {v && (
+                              <span className={`text-[11px] ${selTime === t ? "text-white/90" : "text-gray-400"}`}>
+                                {formatPrice(v.price)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedVariant && (
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
+                  <div className="text-sm">
+                    <p className="text-gray-500">선택한 상담</p>
+                    <p className="font-semibold text-gray-900">
+                      {hasMethodDim && selMethod ? `${selMethod} · ` : ""}{selTime}
+                    </p>
+                  </div>
+                  <span className="text-lg font-bold text-indigo-600">{formatPrice(selectedVariant.price)}</span>
+                </div>
+              )}
+
+              <button
+                onClick={handleOptionNext}
+                disabled={!selectedVariant}
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold disabled:opacity-40"
+              >
+                다음 — 날짜 선택
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Step 2: 날짜 선택 */}
         {step === "date" && (
@@ -538,14 +714,23 @@ export default function BookingFlow({
               <p className="font-semibold text-gray-900">예약 정보 확인</p>
               <Row label="상담사" value={seller.shopName} />
               <Row label="상담 상품" value={selectedProduct.name} />
-              {(selectedProduct.consultingType || selectedProduct.consultingMethod) && (
-                <Row
-                  label="상담 유형"
-                  value={[selectedProduct.consultingType, selectedProduct.consultingMethod].filter(Boolean).join(" · ")}
-                />
-              )}
-              {selectedProduct.durationMinutes != null && (
-                <Row label="상담 시간" value={`${selectedProduct.durationMinutes}분`} />
+              {selectedVariant ? (
+                <>
+                  {selMethod && <Row label="상담 방식" value={selMethod} />}
+                  {selTime && <Row label="상담 시간" value={selTime} />}
+                </>
+              ) : (
+                <>
+                  {(selectedProduct.consultingType || selectedProduct.consultingMethod) && (
+                    <Row
+                      label="상담 유형"
+                      value={[selectedProduct.consultingType, selectedProduct.consultingMethod].filter(Boolean).join(" · ")}
+                    />
+                  )}
+                  {selectedProduct.durationMinutes != null && (
+                    <Row label="상담 시간" value={`${selectedProduct.durationMinutes}분`} />
+                  )}
+                </>
               )}
               <Row label="예약 날짜" value={selectedDate} />
               <Row label="예약 시간" value={`${selectedSlot.startTime} ~ ${selectedSlot.endTime}`} />
@@ -561,7 +746,7 @@ export default function BookingFlow({
               <div className="border-t border-gray-100 pt-2 flex justify-between">
                 <span className="font-semibold text-gray-700">결제 금액</span>
                 <span className="font-bold text-indigo-600 text-base">
-                  {formatPrice(selectedProduct.sellerPrice ?? selectedProduct.basePrice)}
+                  {formatPrice(priceFor(selectedProduct))}
                 </span>
               </div>
             </div>

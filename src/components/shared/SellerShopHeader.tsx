@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import SafeImage from "@/components/shared/SafeImage";
 import NotificationBell from "@/components/shared/NotificationBell";
+import ShopLogoutButton from "@/components/shared/ShopLogoutButton";
 import { pickSajuAvatar } from "@/lib/defaults";
 
 // 점집 전용 상단 바.
@@ -56,6 +57,8 @@ export default function SellerShopHeader({
           <div className="flex items-center gap-0.5 flex-shrink-0">
             {/* 알림 버튼 — 모든 사용자 노출 */}
             <NotificationBell className="text-gray-800" size={32} buttonClassName="p-3" />
+            {/* 로그아웃 — 로그아웃 후 점집 홈으로 이동 */}
+            <ShopLogoutButton slug={sellerSlug} variant="icon" className="text-gray-500 hover:text-red-500" />
           </div>
         ) : (
           <div className="flex items-center gap-1.5 flex-shrink-0">

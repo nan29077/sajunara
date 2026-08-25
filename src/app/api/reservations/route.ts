@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { safeQuery, isMissingSchemaError } from "@/lib/safeDb";
 import { generateOrderNumber } from "@/lib/utils";
+import { hhmmToMinutes, parseConsultDurationMinutes } from "@/lib/consultSlots";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
     gender,
     consultingContent,
     liveStreamId,
+    variantId,
   } = body;
 
   if (!sellerId || !productId || !timeSlotId || !reservationDate || !reservationTime || !customerName || !customerPhone) {
@@ -143,6 +145,20 @@ export async function POST(request: Request) {
         if (!shopProduct) throw new Error("해당 상담사의 상담 상품이 아닙니다.");
       }
 
+      // 선택된 조합(방식×시간) variant — 있으면 그 조합의 가격으로 결제한다.
+      // 조합명은 "영상 상담/1시간" 형태로 상담 시간(길이)이 포함돼 있어 캘린더 동기화에 재사용된다.
+      let variant: { id: string; name: string; price: number } | null = null;
+      if (typeof variantId === "string" && variantId) {
+        const v = await tx.productVariant.findUnique({
+          where: { id: variantId },
+          select: { id: true, name: true, price: true, productId: true, isActive: true },
+        });
+        // 이 상품에 속한 활성 조합일 때만 신뢰 (아니면 무시하고 기본가로 진행)
+        if (v && v.isActive && v.productId === product.id) {
+          variant = { id: v.id, name: v.name, price: Number(v.price) };
+        }
+      }
+
       // 라이브 방송 유래 예약: 방송 검증 + 당일 슬롯 제한 확인
       let liveId: string | null = null;
       if (typeof liveStreamId === "string" && liveStreamId) {
@@ -181,7 +197,8 @@ export async function POST(request: Request) {
         }
       }
 
-      const amount = Number(product.basePrice);
+      // 조합(variant)을 고르면 그 가격, 아니면 상품 기본가
+      const amount = Number(variant ? variant.price : product.basePrice);
       const reservationNumber = generateOrderNumber();
 
       // 예약 생성
@@ -208,7 +225,9 @@ export async function POST(request: Request) {
             create: {
               itemType: "PRODUCT",
               productId,
+              variantId: variant?.id ?? null,
               productName: product.name,
+              variantName: variant?.name ?? null,
               price: amount,
               quantity: 1,
               totalPrice: amount,
@@ -226,10 +245,56 @@ export async function POST(request: Request) {
         },
       });
 
-      return reservation;
+      // 선택한 상담 시간(길이)만큼 이어지는 슬롯도 함께 닫기 위한 정보를 함께 반환.
+      // 조합(variant)을 고른 예약에만 적용 — 기존 단일 슬롯 예약 동작은 그대로 유지한다.
+      // (실제 차단은 트랜잭션 밖에서 베스트-에포트로 수행 — 실패해도 예약은 유지)
+      const durationMinutes = variant ? parseConsultDurationMinutes(variant.name) : null;
+
+      return {
+        reservation,
+        consultantId: sellerProfile.userId,
+        slotStartTime: slot.startTime,
+        durationMinutes,
+      };
     });
 
-    return NextResponse.json({ reservation: result }, { status: 201 });
+    // ── 캘린더 동기화: 예약 길이만큼 이어지는 다른 슬롯도 닫는다 ──────────────
+    // 예: 15:00 에 2시간 예약 → 15:00 슬롯(예약 연결) 외에 16:00 등 [15:00,17:00) 슬롯을 마감.
+    // reservationId 는 1:1(@unique)이라 추가 슬롯에는 걸지 않고 isAvailable=false 로만 막는다.
+    // 취소 시 PATCH 핸들러가 같은 구간을 다시 연다. 전 과정 베스트-에포트(실패해도 예약 성공 유지).
+    try {
+      const startMin = hhmmToMinutes(result.slotStartTime);
+      const dur = result.durationMinutes;
+      if (Number.isFinite(startMin) && dur && dur > 0) {
+        const dayStart = new Date(reservationDate + "T00:00:00.000Z");
+        const dayEnd = new Date(reservationDate + "T23:59:59.999Z");
+        const siblings = await prisma.timeSlot.findMany({
+          where: {
+            consultantId: result.consultantId,
+            date: { gte: dayStart, lte: dayEnd },
+            isAvailable: true,
+            reservationId: null,
+          },
+          select: { id: true, startTime: true },
+        });
+        const toBlock = siblings
+          .filter((s) => {
+            const m = hhmmToMinutes(s.startTime);
+            return Number.isFinite(m) && m > startMin && m < startMin + dur;
+          })
+          .map((s) => s.id);
+        if (toBlock.length > 0) {
+          await prisma.timeSlot.updateMany({
+            where: { id: { in: toBlock } },
+            data: { isAvailable: false },
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[reservations] 캘린더 동기화(연속 슬롯 차단) 실패 — 예약은 정상 처리됨", e);
+    }
+
+    return NextResponse.json({ reservation: result.reservation }, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "예약 생성에 실패했습니다.";
     if (msg === "SLOT_TAKEN") {

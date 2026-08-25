@@ -8,6 +8,7 @@ import { useAppDialog } from "@/components/shared/AppDialog";
 import { useFeatureFlags } from "@/components/shared/FeatureFlagsProvider";
 import { computeBrandUnitMargin, MARGIN_BASE_LABEL } from "@/lib/margin";
 import OptionGroupEditor, { type OptionGroup as OG } from "@/components/shared/OptionGroupEditor";
+import ConsultOptionEditor from "@/components/shared/ConsultOptionEditor";
 import BulkProductRegister from "@/components/shared/BulkProductRegister";
 
 interface Category { id: string; name: string; slug: string; parentId: string | null; }
@@ -793,14 +794,13 @@ export default function ProductRegisterForm({ brands, mode, buttonLabel, hideGro
                       </div>
                     )}
 
-                    {/* 옵션 (다차원 그룹 or 단순) */}
+                    {/* 상담 방식 · 시간 · 조합별 가격 (사주나라 기본 등록 방식) */}
                     <div>
                       <label className="text-xs font-semibold text-gray-700 flex items-center gap-1 mb-2">
-                        <Icon name="ProductOption_icon" size={16} /> 상담상품 옵션
-                        <span className="text-gray-400 font-normal ml-1">(색상, 사이즈 등)</span>
+                        <Icon name="ProductOption_icon" size={16} /> 상담 방식 · 시간 설정
+                        <span className="text-gray-400 font-normal ml-1">(방식·시간별 가격)</span>
                       </label>
-                      <OptionGroupEditor
-                        optionMode={optionMode}
+                      <ConsultOptionEditor
                         variants={form.variants}
                         optionGroups={optionGroups}
                         basePrice={form.basePrice || form.supplyPrice || "0"}

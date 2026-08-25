@@ -15,6 +15,13 @@ function toMoneyOrNull(value: any): number | null {
   return isNaN(n) || n < 0 ? null : n;
 }
 
+// 조합별 정원(재고) → sku 컬럼 저장용 정수 문자열 (미입력/무효는 null = 무제한)
+function stockToSku(value: any): string | null {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isFinite(n) && n >= 0 ? String(n) : null;
+}
+
 // GET: Get categories for product registration form, or admin product list
 export async function GET(req: NextRequest) {
   try {
@@ -177,6 +184,8 @@ export async function POST(req: NextRequest) {
             name: v.name,
             price: parseFloat(String(v.price || basePrice)),
             sortOrder: i,
+            // 조합별 정원(재고)을 미사용 컬럼 sku 에 정수 문자열로 저장 (스키마 변경 없이 보존)
+            sku: stockToSku(v.stock),
           })),
         },
       } : {}),
