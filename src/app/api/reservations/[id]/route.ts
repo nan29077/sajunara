@@ -8,6 +8,7 @@ import {
   getReservationConsultingInfo,
 } from "@/lib/consultingSession";
 import { notifyReservationConfirmedToCustomer } from "@/lib/alimtalkTriggers";
+import { hhmmToMinutes, parseConsultDurationMinutes } from "@/lib/consultSlots";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,48 @@ export async function PATCH(
         where: { id: slot.id },
         data: { isAvailable: true, reservationId: null },
       });
+
+      // 캘린더 동기화 되돌리기: 예약 길이만큼 함께 닫혔던 연속 슬롯을 다시 연다.
+      // (예약 시점에 isAvailable=false 로만 막아둔 슬롯들 — reservationId 는 null)
+      // 베스트-에포트: 실패해도 취소 처리 자체는 유지.
+      try {
+        // 조합(variant) 예약만 되돌린다 — 예약 시점에도 조합 예약에만 연속 슬롯을 막았다.
+        const item = await prisma.reservationItem.findFirst({
+          where: { reservationId: id },
+          select: { variantName: true },
+        });
+        const durationMinutes = parseConsultDurationMinutes(item?.variantName);
+        const startMin = hhmmToMinutes(slot.startTime);
+        if (durationMinutes && durationMinutes > 0 && Number.isFinite(startMin)) {
+          const dayStart = new Date(slot.date);
+          dayStart.setUTCHours(0, 0, 0, 0);
+          const dayEnd = new Date(slot.date);
+          dayEnd.setUTCHours(23, 59, 59, 999);
+          const siblings = await prisma.timeSlot.findMany({
+            where: {
+              consultantId: slot.consultantId,
+              date: { gte: dayStart, lte: dayEnd },
+              isAvailable: false,
+              reservationId: null,
+            },
+            select: { id: true, startTime: true },
+          });
+          const toOpen = siblings
+            .filter((s) => {
+              const m = hhmmToMinutes(s.startTime);
+              return Number.isFinite(m) && m > startMin && m < startMin + durationMinutes!;
+            })
+            .map((s) => s.id);
+          if (toOpen.length > 0) {
+            await prisma.timeSlot.updateMany({
+              where: { id: { in: toOpen } },
+              data: { isAvailable: true },
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("[reservations] 캘린더 동기화 되돌리기 실패 — 취소는 정상 처리됨", e);
+      }
     }
   }
 

@@ -11,7 +11,7 @@ import ShopContextSync from "@/components/shared/ShopContextSync";
 import ShopBookingCalendar, { type DaySlots } from "@/components/shared/ShopBookingCalendar";
 import ShopShareButton from "@/components/shared/ShopShareButton";
 import ReservationCountdown from "@/components/shop/ReservationCountdown";
-import { CalendarCheck, Clock, Video, Phone, MapPin, Sparkles, ChevronRight, CalendarDays } from "lucide-react";
+import { CalendarCheck, Clock, Video, Phone, MapPin, Sparkles, ChevronRight, CalendarDays, Play } from "lucide-react";
 import { getFeatureFlags } from "@/lib/settings";
 import { DEFAULT_PRODUCT_IMAGE, resolveSellerDisplayImage, resolveShopBanner } from "@/lib/defaults";
 import { OnAirBadge, LIVE_RING_CLASS } from "@/components/shared/LiveBadge";
@@ -268,9 +268,35 @@ export default async function SellerShopPage({
   const currentLive = seller.liveStreams[0] ?? null;
   const manualLiveOn = (seller as any).isManualLive ?? false;
   const showLive = manualLiveOn || !!currentLive;
-  const liveHref = currentLive ? `/live/${currentLive.shareCode}` : (seller as any).liveLink || null;
+
+  // 수동 라이브(방송 레코드 없이 토글만 켠 경우)에 설정한 외부 링크.
+  // 스킴(https://)이 빠져 있으면 붙여줘 상대경로로 잘못 해석되지 않게 한다.
+  const manualLiveLink = (() => {
+    const raw = manualLiveOn ? String((seller as any).liveLink || "").trim() : "";
+    if (!raw) return null;
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  })();
+
+  // 프로필 클릭 대상:
+  //   · 실제 방송 중  → 앱 내부 라이브 뷰어(/live/{shareCode})
+  //   · 수동 라이브    → 상담사가 설정한 외부 링크(manualLiveLink)
+  const liveHref = currentLive ? `/live/${currentLive.shareCode}` : manualLiveLink;
+  const profileLiveHref = showLive ? liveHref : null;
+  // "/"로 시작하면 내부 경로, 아니면 외부 링크(새 탭)로 연다.
+  const profileLiveIsExternal = !!profileLiveHref && !profileLiveHref.startsWith("/");
 
   const bookHref = `/shop/${seller.slug}/book`;
+
+  // 프로필 아바타 이미지 (링크 유무와 무관하게 동일 노드 재사용)
+  const avatarImage = (
+    <SafeImage
+      src={avatar}
+      alt={seller.shopName}
+      width={72}
+      height={72}
+      fallbackText={seller.shopName.charAt(0)}
+    />
+  );
 
   return (
     <div className="animate-fade-in bg-[#f7f6fb] min-h-screen">
@@ -306,19 +332,30 @@ export default async function SellerShopPage({
           <div className="bg-white/95 backdrop-blur-sm rounded-[26px] shadow-[0_12px_36px_rgba(35,22,67,0.12)] border border-white p-[18px] pb-5">
             <div className="flex items-start gap-3">
               <div className="flex flex-col items-center flex-shrink-0 -mt-9">
-                <div
-                  className={`relative w-[72px] h-[72px] rounded-full overflow-hidden ring-4 bg-white shadow-md ${
-                    showLive ? LIVE_RING_CLASS : "ring-white"
-                  }`}
-                >
-                  <SafeImage
-                    src={avatar}
-                    alt={seller.shopName}
-                    width={72}
-                    height={72}
-                    fallbackText={seller.shopName.charAt(0)}
-                  />
-                </div>
+                {profileLiveHref ? (
+                  // 라이브 중 — 프로필 클릭 시 연동된 라이브(YouTube 등)로 이동
+                  <a
+                    href={profileLiveHref}
+                    {...(profileLiveIsExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    aria-label="라이브 방송 보기"
+                    title="라이브 방송 보기"
+                    className={`group relative block w-[72px] h-[72px] rounded-full overflow-hidden ring-4 bg-white shadow-md ${LIVE_RING_CLASS}`}
+                  >
+                    {avatarImage}
+                    {/* 클릭 유도 오버레이 (라이브 재생) */}
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-90 transition-opacity group-hover:bg-black/35">
+                      <Play size={22} className="text-white drop-shadow" fill="#ffffff" strokeWidth={0} />
+                    </span>
+                  </a>
+                ) : (
+                  <div
+                    className={`relative w-[72px] h-[72px] rounded-full overflow-hidden ring-4 bg-white shadow-md ${
+                      showLive ? LIVE_RING_CLASS : "ring-white"
+                    }`}
+                  >
+                    {avatarImage}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 min-w-0 pt-0.5">

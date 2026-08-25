@@ -14,6 +14,16 @@ function toMoneyOrNull(value: any): number | null {
   const n = parseFloat(String(value));
   return isNaN(n) || n < 0 ? null : n;
 }
+// 조합별 정원(재고) → sku 컬럼 저장용 정수 문자열 (미입력/무효는 null)
+function stockToSku(value: any): string | null {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isFinite(n) && n >= 0 ? String(n) : null;
+}
+// sku(정수 문자열)에 보존된 정원을 숫자로 복원 (없으면 0)
+function skuToStock(sku: string | null | undefined): number {
+  return sku && /^\d+$/.test(sku) ? parseInt(sku, 10) : 0;
+}
 
 // GET: Fetch product data for editing
 export async function GET(
@@ -79,6 +89,8 @@ export async function GET(
         variants: product.variants.map((v) => ({
           ...v,
           price: Number(v.price),
+          // 조합별 정원을 sku 에서 복원해 편집 폼에 되돌려준다
+          stock: skuToStock((v as { sku?: string | null }).sku),
         })),
       },
       categories,
@@ -211,6 +223,8 @@ export async function PUT(
             price: parseFloat(String(v.price || updated.basePrice)),
             sortOrder: i,
             isActive: true,
+            // 조합별 정원(재고)을 sku 에 보존 (스키마 변경 없이)
+            sku: stockToSku(v.stock),
           })),
         });
       }

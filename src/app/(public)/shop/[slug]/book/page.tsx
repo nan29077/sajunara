@@ -134,6 +134,58 @@ export default async function BookingPage({
     }
   }
 
+  // ── 방식×시간 조합 옵션 부착 (운영 DB 드리프트 안전) ──────────────────────
+  // BookingFlow 가 방식→시간 2단계 선택 후 조합 가격으로 결제할 수 있도록,
+  // 각 상품의 optionGroups(JSON) + variants([{id,name,price}]) 를 함께 넘긴다.
+  const productIds = products.map((p) => p.id);
+  const optionMap: Record<
+    string,
+    {
+      optionGroups: { groupName: string; options: string[] }[] | null;
+      variants: { id: string; name: string; price: number }[];
+    }
+  > = {};
+  if (productIds.length > 0) {
+    // variants — 관계 테이블은 항상 존재
+    try {
+      const vrows = await prisma.productVariant.findMany({
+        where: { productId: { in: productIds }, isActive: true },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, name: true, price: true, productId: true },
+      });
+      for (const v of vrows) {
+        if (!optionMap[v.productId]) optionMap[v.productId] = { optionGroups: null, variants: [] };
+        optionMap[v.productId].variants.push({ id: v.id, name: v.name, price: Number(v.price) });
+      }
+    } catch (e) {
+      console.error("Booking page: variants 조회 실패", e);
+    }
+    // optionGroups — 스칼라 컬럼이 운영 DB에 없을 수 있어 별도 try
+    try {
+      const grows = (await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, optionGroups: true } as any,
+      })) as unknown as { id: string; optionGroups: string | null }[];
+      for (const g of grows) {
+        if (g.optionGroups) {
+          try {
+            if (!optionMap[g.id]) optionMap[g.id] = { optionGroups: null, variants: [] };
+            optionMap[g.id].optionGroups = JSON.parse(g.optionGroups);
+          } catch {
+            /* JSON 파싱 실패 무시 */
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Booking page: optionGroups 조회 실패(컬럼 미반영일 수 있음)", e);
+    }
+  }
+  const productsWithOptions = products.map((p) => ({
+    ...p,
+    optionGroups: optionMap[p.id]?.optionGroups ?? null,
+    variants: optionMap[p.id]?.variants ?? [],
+  }));
+
   return (
     <BookingFlow
       seller={{
@@ -146,7 +198,7 @@ export default async function BookingPage({
         consultantName: seller.user.name,
         consultantAvatar: seller.user.avatar,
       }}
-      products={products}
+      products={productsWithOptions}
       currentUserId={session.user.id}
       initialProductId={productParam || null}
       liveStreamId={liveParam || null}
