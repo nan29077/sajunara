@@ -158,21 +158,41 @@ const CONTENT: Record<string, { title: string; body: () => React.ReactNode }> = 
       <div className="space-y-3">
         <Card>
           <SectionHeading>제1조 (목적)</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">이 약관은 사주나라(이하 "회사")가 운영하는 마켓플레이스 서비스(이하 "서비스")의 이용 조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed">이 약관은 주식회사 윈스투핀(이하 "회사")이 운영하는 사주나라 플랫폼 서비스(이하 "서비스")의 이용 조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
         </Card>
         <Card>
           <SectionHeading>제2조 (정의)</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">"회원"이란 회사의 서비스에 접속하여 이 약관에 따라 회사와 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 말합니다.</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed">"회원"이란 본 약관에 동의하고 회사의 서비스에 가입하여 이용하는 고객을 말합니다. "상담사"란 회원 중 사주·타로·운세 등 역술 상담 서비스를 등록·제공하는 자를 말하며, "이용자"란 상담사의 서비스를 예약·결제하여 이용하는 회원을 말합니다.</p>
         </Card>
         <Card>
-          <SectionHeading>제3조 (서비스 이용)</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">서비스 이용은 회사의 업무상 또는 기술상 특별한 지장이 없는 한 연중무휴, 1일 24시간 운영을 원칙으로 합니다. 시스템 점검 등의 이유로 일시 중단될 수 있습니다.</p>
+          <SectionHeading>제3조 (약관의 효력 및 변경)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">본 약관은 서비스 화면에 게시하거나 이메일 등의 방법으로 회원에게 공지함으로써 효력이 발생합니다. 회사는 관련 법령을 위반하지 않는 범위에서 약관을 개정할 수 있으며, 중요 사항은 최소 7일 전 사전 공지합니다.</p>
         </Card>
         <Card>
-          <SectionHeading>제4조 (회원의 의무)</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">회원은 서비스 이용 시 관계 법령, 이 약관, 이용 안내 및 서비스와 관련하여 공지한 주의사항을 준수하여야 합니다.</p>
+          <SectionHeading>제4조 (서비스 이용)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">서비스는 연중무휴 24시간 운영을 원칙으로 하나, 시스템 점검·장애·천재지변 등의 사유로 일시 중단될 수 있습니다. 회사는 중단 사실을 사전 또는 사후에 공지합니다.</p>
         </Card>
-        <p className="text-brand-400 text-xs text-center pt-1">본 약관은 2025년 1월 1일부터 시행됩니다.</p>
+        <Card>
+          <SectionHeading>제5조 (회원의 의무)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">회원은 관계 법령, 본 약관 및 회사의 운영 정책을 준수하여야 합니다. 타인의 개인정보 도용, 허위 정보 등록, 서비스 비정상 이용 등의 행위는 금지되며 위반 시 이용이 제한될 수 있습니다.</p>
+        </Card>
+        <Card>
+          <SectionHeading>제6조 (결제 및 환불)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">상담 예약 결제 후 상담 시작 전에는 전액 환불이 원칙입니다. 상담 시작 24시간 이내 취소 또는 상담 진행 후에는 환불이 제한될 수 있습니다. 환불 처리는 접수 후 3~5 영업일 이내에 결제 수단으로 이루어집니다.</p>
+        </Card>
+        <Card>
+          <SectionHeading>제7조 (면책 조항)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">회사는 상담사가 제공하는 사주·타로·운세 등의 콘텐츠 내용에 대한 정확성·신뢰성을 보증하지 않습니다. 서비스 이용으로 인한 결과에 대해 회사는 법령이 정하는 범위 내에서만 책임을 집니다.</p>
+        </Card>
+        <Card>
+          <SectionHeading>부칙 (사업자 정보)</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            상호: 주식회사 윈스투핀 | 서비스명: 사주나라<br/>
+            대표자: 박찬엽 | 사업자등록번호: 219-81-34189<br/>
+            고객센터: 070-8080-4536 | 이메일: hibvo119@naver.com<br/>
+            본 약관은 2025년 1월 1일부터 시행됩니다.
+          </p>
+        </Card>
       </div>
     ),
   },
@@ -181,22 +201,51 @@ const CONTENT: Record<string, { title: string; body: () => React.ReactNode }> = 
     body: () => (
       <div className="space-y-3">
         <Card>
+          <SectionHeading>개요</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">주식회사 윈스투핀(이하 "회사")은 사주나라 서비스 운영을 위해 개인정보를 처리하며, 「개인정보 보호법」 등 관련 법령을 준수합니다. 본 방침은 회원의 개인정보를 어떻게 수집·이용·보호하는지 안내합니다.</p>
+        </Card>
+        <Card>
           <SectionHeading>수집하는 개인정보 항목</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">회원가입 시: 이름, 이메일, 비밀번호. 서비스 이용 시: 예약·상담 내역, 결제정보. 자동 수집: IP주소, 쿠키, 방문 기록.</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            <strong className="text-gray-700">회원가입 시:</strong> 이름, 이메일 주소, 비밀번호(암호화 저장), 휴대폰 번호(선택)<br/>
+            <strong className="text-gray-700">서비스 이용 시:</strong> 예약·상담 내역, 결제 정보(카드사에서 암호화 처리), 상담 후기<br/>
+            <strong className="text-gray-700">자동 수집:</strong> IP 주소, 쿠키, 서비스 이용 기록, 기기 정보
+          </p>
         </Card>
         <Card>
           <SectionHeading>개인정보 수집 및 이용 목적</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">회원 관리, 서비스 제공, 예약 및 상담 진행, 고객 상담, 마케팅 및 광고에 활용합니다.</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed">회원 식별 및 계정 관리, 예약·결제·상담 서비스 제공, 고객 문의 응답, 서비스 개선 및 신규 서비스 개발, 법령상 의무 이행. 마케팅·광고 활용은 별도 동의를 받는 경우에만 해당합니다.</p>
         </Card>
         <Card>
-          <SectionHeading>개인정보 보유 기간</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">회원 탈퇴 시까지 보유하며, 관련 법령에 따라 일정 기간 보관이 필요한 정보는 해당 기간 동안 보관합니다.</p>
+          <SectionHeading>개인정보 보유 및 이용 기간</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            회원 탈퇴 시까지 보유하며, 아래 법령에 따른 정보는 해당 기간 보관합니다.<br/>
+            · 계약·청약철회 기록: 5년 (전자상거래법)<br/>
+            · 대금결제·재화 공급 기록: 5년 (전자상거래법)<br/>
+            · 소비자 불만·분쟁 기록: 3년 (전자상거래법)<br/>
+            · 접속 로그·접속 IP: 3개월 (통신비밀보호법)
+          </p>
+        </Card>
+        <Card>
+          <SectionHeading>개인정보 제3자 제공</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">회사는 원칙적으로 회원의 개인정보를 제3자에게 제공하지 않습니다. 단, 결제 처리를 위한 PG사, 법령에 따른 수사기관의 요청 등 법률에 특별한 규정이 있는 경우는 예외입니다.</p>
         </Card>
         <Card>
           <SectionHeading>개인정보 파기</SectionHeading>
-          <p className="text-[13px] text-gray-600 leading-relaxed">보유 기간 만료 시 지체 없이 파기합니다. 전자적 파일은 복구 불가능한 방법으로 영구 삭제합니다.</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed">보유 기간 만료 또는 목적 달성 시 지체 없이 파기합니다. 전자적 파일은 복구 불가능한 방법으로 영구 삭제하며, 출력물은 분쇄 또는 소각하여 처리합니다.</p>
         </Card>
-        <p className="text-brand-400 text-xs text-center pt-1">본 방침은 2025년 1월 1일부터 적용됩니다.</p>
+        <Card>
+          <SectionHeading>정보주체의 권리</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">회원은 언제든지 개인정보 열람, 정정, 삭제, 처리 정지를 요청할 수 있습니다. 마이페이지에서 직접 수정하거나 고객센터(hibvo119@naver.com)로 문의하시면 됩니다.</p>
+        </Card>
+        <Card>
+          <SectionHeading>개인정보 보호책임자</SectionHeading>
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            회사명: 주식회사 윈스투핀 | 대표: 박찬엽<br/>
+            이메일: hibvo119@naver.com | 고객센터: 070-8080-4536<br/>
+            본 방침은 2025년 1월 1일부터 적용됩니다.
+          </p>
+        </Card>
       </div>
     ),
   },
