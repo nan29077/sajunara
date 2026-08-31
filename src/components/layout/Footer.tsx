@@ -6,6 +6,7 @@ import { Download } from "lucide-react";
 import type { FeatureFlags, SocialLinks } from "@/lib/featureFlags";
 import type { FooterSettings } from "@/lib/settings";
 import { useShopChrome } from "@/components/shared/ShopChromeProvider";
+import BrandWordmark from "@/components/shared/BrandWordmark";
 
 export default function Footer(_props: {
   flags?: FeatureFlags;
@@ -24,7 +25,7 @@ export default function Footer(_props: {
           {/* 브랜드 */}
           <div className="col-span-2">
             <Link href="/" className="inline-block mb-2">
-              <span className="text-base font-extrabold text-white tracking-tight">&lt;사주나라&gt;</span>
+              <BrandWordmark size="sm" variant="light" />
             </Link>
             <p className="text-[11px] text-gray-500">사주·타로·운세 전문 상담 플랫폼</p>
           </div>
