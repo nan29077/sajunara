@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FeatureFlags, SocialLinks } from "@/lib/featureFlags";
 import type { FooterSettings } from "@/lib/settings";
 import { useShopChrome } from "@/components/shared/ShopChromeProvider";
 
-// 사주나라 하단 푸터 — 아래 사업자 정보만 노출한다. (그 외 어떤 내용도 넣지 않는다)
 export default function Footer(_props: {
   flags?: FeatureFlags;
   socialLinks?: SocialLinks;
@@ -19,6 +19,17 @@ export default function Footer(_props: {
   return (
     <footer className="bg-gray-950 text-gray-400">
       <div className="px-4 py-6">
+        {/* 약관 링크 */}
+        <div className="flex gap-4 mb-4 text-[12px]">
+          <Link href="/support/terms" className="text-gray-300 hover:text-white transition-colors">
+            이용약관
+          </Link>
+          <Link href="/support/privacy" className="text-gray-300 hover:text-white transition-colors font-semibold">
+            개인정보처리방침
+          </Link>
+        </div>
+
+        {/* 사업자 정보 */}
         <div className="space-y-1.5 text-[11px] leading-relaxed">
           <p className="text-sm font-bold text-white mb-2">&lt;사주나라&gt;</p>
           <p><span className="text-gray-500">법인명</span> : 주식회사 윈스투핀</p>
